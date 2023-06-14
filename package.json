@@ -6,7 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js", 
+    "build:ui": "@powershell Remove-Item -Recurse -Force build && cd ../phonebook && npm run build && @powershell Copy-Item build -Recurse ../phonebook-backend", 
+    "deploy:full": "npm run build:ui && git add . && git commit -u uibuild && git push"
   },
   "author": "Junaid Ansari",
   "license": "ISC",
