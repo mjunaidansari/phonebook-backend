@@ -1,5 +1,6 @@
 const express = require('express')
 const morgan = require('morgan') // http request logger middleware for nodejs https://github.com/expressjs/morgan
+const cors = require('cors')
 
 morgan.token('body', (request, response) => JSON.stringify(request.body))
 
@@ -13,6 +14,7 @@ const unknownEndpoint = (request, response) => {
 }
  
 //middleware are called in order they are taken into use
+app.use(cors())
 app.use(express.json())
 app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body '))
 
