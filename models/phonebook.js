@@ -18,8 +18,15 @@ mongoose
 
 // creating a schema for contact docs
 const personSchema = mongoose.Schema({
-    name: String, 
-    number: Number,
+    name: {
+        type: String, 
+        minLength: 3,
+        require: true
+    }, 
+    number: {
+        type: String, 
+        minLength: 8
+    },
 })
 
 // transforming the incoming doc into JSON having _id changed to id and removing __v versioning field
