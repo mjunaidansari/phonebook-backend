@@ -1,6 +1,12 @@
+require('dotenv').config()
+
 const express = require('express')
 const morgan = require('morgan') // http request logger middleware for nodejs https://github.com/expressjs/morgan
 const cors = require('cors')
+
+const Person = require('./models/phonebook')
+
+/* ---MIDDLEWARE PART--- */
 
 morgan.token('body', (request, response) => JSON.stringify(request.body))
 
@@ -12,7 +18,18 @@ const unknownEndpoint = (request, response) => {
     error: 'unknown endpoint'
   })
 }
- 
+
+// middleware for error handling (is defined with 4 parameters)
+const errorHandler = (error, request, response, next) => {
+  console.log(error.message)
+
+  if(error.name === 'CastError')
+    return response.status(400).send({error: 'malformatted id'})
+
+  // in other situations error will be passed to default express error handler by below function  
+  next(error)
+}
+
 //middleware are called in order they are taken into use
 app.use(cors())
 app.use(express.static('build'))
@@ -48,44 +65,57 @@ app.get('/', (request, response) => {
 })
 
 //info tab
-app.get('/info', (request, response) => {
-  const n = persons.length
-  const date = new Date()
-  response.send(`
-    <p>Phonebook has info for ${n} people</p>
-    <p>${date}</p>
-  `)
+app.get('/info', (request, response, next) => {
+  const date = new Date();
+  Person
+    .countDocuments()
+    .then(result => {
+      response.send(`
+        <p>Phonebook has info for ${result} people</p>
+        <p>${date}</p>
+      `)
+    })
+    .catch(error => next(error))
 })
 
 // to get all the contacts
 app.get('/api/persons', (request, response) => {
-    response.json(persons)
+  Person
+    .find({})
+    .then(persons => {
+      response.json(persons)
+    })
 })
 
 // get a single contact
-app.get('/api/persons/:id', (requset, response) => {
-  const id = Number(requset.params.id)
-  const person = persons.find(person => person.id === id)
-  console.log(person)
-  if(person) response.json(person)
-  else response.status(404).end()  //end() is used to send response without data
+app.get('/api/persons/:id', (requset, response, next) => {
+  const id = requset.params.id
+  console.log(id)
+  Person 
+    .findById(id)
+    .then(person => {
+      if(person)
+        response.json(person)
+      else 
+        response.status(404).end()
+    })
+    .catch(error => next(error))
 })
 
 // delete a contact
-app.delete('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  persons = persons.filter(person => person.id !== id)
-  response.status(204).end()
+app.delete('/api/persons/:id', (request, response, next) => {
+  const id = request.params.id
+  console.log(id)
+  Person 
+    .findByIdAndRemove(id)
+    .then(result => {
+      console.log('deleted')
+      response.status(204).end()
+    })
+    .catch(error => next(error))
 })
 
-// receive a contact
-const generateId = () => {
-  const maxId = persons.length > 0 
-  ? Math.max(...persons.map(p => p.id)) //spread operator is used to pass array as separate numbers
-  : 0
-  return maxId + 1
-}
-
+// create a contact
 app.post('/api/persons', (request, response) => {
   const body = request.body
   console.log(body)
@@ -95,29 +125,40 @@ app.post('/api/persons', (request, response) => {
     return response.status(400).json({
       error: 'content missing'
     })
-
-  const found = persons.find(person => person.name === body.name)
-
-  if(found) 
-    return response.status(400).json({
-      error: 'name must be unique'
-    })
   
+  const person = new Person({
+    name: body.name, 
+    number: body.number, 
+  })
+
+  person  
+    .save()
+    .then(savedPerson => {
+      response.json(savedPerson)
+    })
+})
+
+// to update the phone number
+app.put('/api/persons/:id', (request, response, next) => {
+  const body = request.body
+  const id = request.params.id
+
   const person = {
-  name: body.name, 
-  number: body.number, 
-  id: generateId()
+    name: body.name,
+    number: body.number,
   }
 
-  persons = persons.concat(person)
-
-  response.json(person)
+  Person
+    .findByIdAndUpdate(id, person, {new: true}) // {new: true } will cause the event handler to be called with new modified document
+    .then(updatedPerson => {
+      response.json(updatedPerson)
+    })
+    .catch(error => next(error))
 })
 
 app.use(unknownEndpoint)
 
-// making app listen to the port 3001
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT 
 app.listen(PORT, () => {
     console.log(`Server running on ${PORT}`)
 })
