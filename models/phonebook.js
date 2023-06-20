@@ -20,7 +20,7 @@ mongoose
 const personSchema = mongoose.Schema({
     name: {
         type: String, 
-        minLength: 3,
+        minLength: [6, 'Minimum length should be 6'],
         require: true
     }, 
     number: {
