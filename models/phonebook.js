@@ -19,13 +19,17 @@ mongoose
 // creating a schema for contact docs
 const personSchema = mongoose.Schema({
     name: {
-        type: String, 
-        minLength: [6, 'Minimum length should be 6'],
+        type: String,
+        minLength: 3,
         require: true
     }, 
     number: {
-        type: String, 
-        minLength: 8
+        type: String,
+        validate: {
+            validator: value =>/^[0-9]{2,3}[-]?[0-9]{6,8}$/.test(value), 
+            message: props => `${props.value} is not a valid phone number!`
+        },
+        required: true
     },
 })
 
