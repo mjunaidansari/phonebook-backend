@@ -26,7 +26,7 @@ const errorHandler = (error, request, response, next) => {
   if(error.name === 'CastError')
     return response.status(400).send({error: 'malformatted id'})
   else if(error.name === 'ValidationError')
-    return response.status(400).send({error: error.message})
+    return response.status(400).json({error: error.message, status: 400})
 
   // in other situations error will be passed to default express error handler by below function  
   next(error)
@@ -125,8 +125,8 @@ app.post('/api/persons', (request, response, next) => {
   //return if name or number is missing 
   
   const person = new Person({
-    name: name, 
-    number: number, 
+    name: name,
+    number: number 
   })
 
   person  
@@ -151,6 +151,7 @@ app.put('/api/persons/:id', (request, response, next) => {
 })
 
 app.use(unknownEndpoint)
+app.use(errorHandler)
 
 const PORT = process.env.PORT 
 app.listen(PORT, () => {
